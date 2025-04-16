@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.NoSuchElementException;
-
+import com.signproject.signmanager.exception.LoginFailedException;
 /**
  * 로그인 로직을 처리하는 서비스 클래스
  * - 사용자 검증
@@ -25,11 +25,10 @@ public class AuthService {
 
     public String login(LoginRequestDto dto) {
         User user = userRepository.findByUsername(dto.getUsername())
-                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 사용자입니다."));
+                .orElseThrow(() -> new LoginFailedException("존재하지 않는 사용자입니다."));
 
-        // ✅ 암호화된 비밀번호 비교
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            throw new LoginFailedException("비밀번호가 일치하지 않습니다.");
         }
 
         return jwtTokenProvider.createToken(user.getId());
