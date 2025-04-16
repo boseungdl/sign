@@ -1,14 +1,18 @@
+// 📁 경로: src/main/java/com/signproject/signmanager/service/AuthService.java
+
 package com.signproject.signmanager.service;
 
 import com.signproject.signmanager.domain.User;
 import com.signproject.signmanager.dto.LoginRequestDto;
+import com.signproject.signmanager.dto.LoginResponseDto;
+import com.signproject.signmanager.dto.UserResponseDto;
 import com.signproject.signmanager.repository.UserRepository;
 import com.signproject.signmanager.util.JwtTokenProvider;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import java.util.NoSuchElementException;
 import com.signproject.signmanager.exception.LoginFailedException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 /**
  * 로그인 로직을 처리하는 서비스 클래스
  * - 사용자 검증
@@ -21,16 +25,21 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
-    private final PasswordEncoder passwordEncoder; // 추가
+    private final PasswordEncoder passwordEncoder;
 
-    public String login(LoginRequestDto dto) {
-        User user = userRepository.findByUsername(dto.getUsername())
-                .orElseThrow(() -> new LoginFailedException("존재하지 않는 사용자입니다."));
+    public LoginResponseDto login(LoginRequestDto requestDto) {
+        User user = userRepository.findByUsername(requestDto.getUsername())
+                .orElseThrow(() -> new LoginFailedException("아이디 또는 비밀번호가 일치하지 않습니다."));
 
-        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new LoginFailedException("비밀번호가 일치하지 않습니다.");
+        if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
+            throw new LoginFailedException("아이디 또는 비밀번호가 일치하지 않습니다.");
         }
 
-        return jwtTokenProvider.createToken(user.getId());
+        String token = jwtTokenProvider.createToken(user.getId());
+
+        // 🔄 분리된 UserResponseDto 사용
+        UserResponseDto userDto = new UserResponseDto(user.getId(), user.getUsername(), user.getRole().name());
+
+        return new LoginResponseDto(token, userDto);
     }
 }

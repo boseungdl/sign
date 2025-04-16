@@ -1,10 +1,15 @@
 package com.signproject.signmanager.controller;
 
 import com.signproject.signmanager.dto.LoginRequestDto;
+import com.signproject.signmanager.dto.LoginResponseDto;
 import com.signproject.signmanager.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * 인증 관련 요청을 처리하는 컨트롤러
@@ -23,8 +28,11 @@ public class AuthController {
      * @return JWT 토큰 문자열 반환
      */
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequestDto dto) {
-        String token = authService.login(dto);
-        return ResponseEntity.ok(token);
+    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto requestDto) {
+        // ✅ 모든 로직은 서비스에서!
+        LoginResponseDto response = authService.login(requestDto);
+        return ResponseEntity.ok(response);
     }
+
+
 }
