@@ -5,7 +5,7 @@ package com.signproject.signmanager.service;
 import com.signproject.signmanager.domain.User;
 import com.signproject.signmanager.dto.LoginRequestDto;
 import com.signproject.signmanager.dto.LoginResponseDto;
-import com.signproject.signmanager.dto.UserResponseDto;
+import com.signproject.signmanager.dto.UserInfoDto;
 import com.signproject.signmanager.repository.UserRepository;
 import com.signproject.signmanager.util.JwtTokenProvider;
 import com.signproject.signmanager.exception.LoginFailedException;
@@ -38,7 +38,7 @@ public class AuthService {
         String token = jwtTokenProvider.createToken(user.getId());
 
         // 🔄 분리된 UserResponseDto 사용
-        UserResponseDto userDto = new UserResponseDto(user.getId(), user.getUsername(), user.getRole().name());
+        UserInfoDto userDto = new UserInfoDto(user.getId(), user.getUsername(), user.getRole());
 
         return new LoginResponseDto(token, userDto);
     }
