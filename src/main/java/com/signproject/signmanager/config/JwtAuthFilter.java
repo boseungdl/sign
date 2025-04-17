@@ -1,5 +1,8 @@
 package com.signproject.signmanager.config;
 
+import com.signproject.signmanager.common.exception.BusinessException;
+import com.signproject.signmanager.common.exception.InvalidTokenException;
+import com.signproject.signmanager.common.exception.NoTokenException;
 import com.signproject.signmanager.util.JwtTokenProvider;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -33,16 +36,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String token = jwtTokenProvider.resolveToken(request);
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            Long userId = jwtTokenProvider.getUserIdFromToken(token);
 
-            // 인증 객체 생성 및 SecurityContext 등록
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(userId, null, null); // 권한 필요시 마지막에 컬렉션 추가
-
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+        if (token == null) {
+            throw new NoTokenException();
         }
+
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw new InvalidTokenException();
+        }
+
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
+
+        // 인증 객체 생성 및 SecurityContext 등록
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(userId, null, null); // 권한 필요시 마지막에 컬렉션 추가
+
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+
 
         // 다음 필터로 진행
         filterChain.doFilter(request, response);

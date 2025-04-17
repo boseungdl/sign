@@ -2,6 +2,7 @@ package com.signproject.signmanager.common.exception;
 
 import com.signproject.signmanager.common.response.ApiErrorResponse;
 import com.signproject.signmanager.common.response.ApiResponse;
+import jakarta.security.auth.message.AuthException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +86,15 @@ public class GlobalExceptionHandler {
         );
     }
 
+    /**
+     * 📌 인증 실패 관련 예외 처리 (ex: 토큰 없음, 만료, 위조 등)
+     */
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<ApiResponse<?>> handleAuthException(AuthException ex) {
+        log.warn("[AuthException] {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(HttpStatus.UNAUTHORIZED, ex.getMessage(), null));
+    }
     /**
      * 📌 비즈니스 로직 오류 처리 (ex: 로그인 실패, 권한 없음 등)
      */
