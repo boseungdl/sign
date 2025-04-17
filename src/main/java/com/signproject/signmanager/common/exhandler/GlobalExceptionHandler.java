@@ -1,6 +1,6 @@
-package com.signproject.signmanager.common.exception;
+package com.signproject.signmanager.common.exhandler;
 
-import com.signproject.signmanager.common.response.ApiErrorResponse;
+import com.signproject.signmanager.common.exception.BusinessException;
 import com.signproject.signmanager.common.response.ApiResponse;
 import jakarta.security.auth.message.AuthException;
 import jakarta.validation.ConstraintViolationException;
@@ -101,9 +101,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<?>> handleBusinessException(BusinessException ex) {
         log.warn("[BusinessException] {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                ApiResponse.error(HttpStatus.UNAUTHORIZED, ex.getMessage(), null)
-        );
+        return ResponseEntity.status(ex.getStatus())
+                .body(ApiResponse.error(ex.getStatus(), ex.getMessage(), null));
     }
 
     /**

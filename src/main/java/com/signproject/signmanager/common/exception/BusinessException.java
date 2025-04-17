@@ -2,6 +2,7 @@ package com.signproject.signmanager.common.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 
 /**
  * ✅ [공통 비즈니스 예외 추상 클래스]
@@ -23,14 +24,19 @@ import org.slf4j.LoggerFactory;
 public abstract class BusinessException extends RuntimeException {
 
     private static final Logger log = LoggerFactory.getLogger(BusinessException.class);
-
+    private final HttpStatus status;
     /**
      * 공통 생성자
      * @param message 클라이언트 또는 로깅 용도의 예외 메시지
      */
-    public BusinessException(String message) {
+    public BusinessException(String message, HttpStatus status) {
         super(message);
-        log.warn("[BusinessException 발생] {}", message);
+        this.status = status;
+        log.warn("[BusinessException 발생] {} ({})", message, status);
+    }
+
+    public HttpStatus getStatus() {
+        return status;
     }
 
     // ✅ 향후 확장 고려 필드 예시

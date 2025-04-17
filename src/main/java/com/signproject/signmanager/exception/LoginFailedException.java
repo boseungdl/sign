@@ -1,20 +1,28 @@
 package com.signproject.signmanager.exception;
 
 import com.signproject.signmanager.common.exception.BusinessException;
+import org.springframework.http.HttpStatus;
 
 /**
  * [로그인 실패 예외]
- * - 사용자 인증 실패 시 (아이디/비밀번호 불일치 등) 발생
  *
- * 사용 예: AuthService에서 로그인 시 비밀번호 불일치 등 검증 실패 처리
+ * ✅ 발생 조건:
+ * - 사용자 인증 실패 (아이디 불일치 또는 비밀번호 불일치)
+ *
+ * ✅ 처리 위치:
+ * - AuthService에서 검증 실패 시 throw
+ *
+ * ✅ 특징:
+ * - 상태 코드: 401 Unauthorized
  */
 public class LoginFailedException extends BusinessException {
 
     /**
-     * 생성자
-     * @param message 실패 이유 (ex: 비밀번호가 틀렸습니다)
+     * 로그인 실패 예외 생성자
+     *
+     * @param message 클라이언트 또는 로그용 메시지
      */
     public LoginFailedException(String message) {
-        super(message);
+        super(message, HttpStatus.UNAUTHORIZED);
     }
 }
