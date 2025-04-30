@@ -1,11 +1,12 @@
 package com.signproject.signmanager.common.exhandler;
 
-import com.signproject.signmanager.common.exception.BusinessException;
 import com.signproject.signmanager.common.response.ApiResponse;
+import com.signproject.signmanager.common.trace.LogTrace;
+import com.signproject.signmanager.common.trace.TraceStatus;
+import com.signproject.signmanager.common.exception.BusinessException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.security.auth.message.AuthException;
 import jakarta.validation.ConstraintViolationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,105 +15,129 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
 /**
  * [전역 예외 핸들러]
- * - @Valid 유효성 검증 실패, 커스텀 비즈니스 예외 등 프로젝트 전체의 예외를 통합 관리
- * - 예외에 따라 알맞은 상태 코드와 메시지를 포함한 표준 에러 응답 반환
+ * - @Valid 유효성 검증, 커스텀 예외 등 전역 예외 관리
+ * - Filter/Interceptor에서 시작된 TraceStatus 참조해 일관된 traceId 유지
  */
+@Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private final LogTrace trace; // LogTrace 주입
 
     /**
-     * 📌 JSON 파싱 실패 or 타입 불일치 (ex: "username": true → String 필드에 boolean 입력)
+     * 📌 JSON 파싱 실패 or 타입 불일치
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<?>> handleJsonParseException(HttpMessageNotReadableException ex) {
-        log.warn("[HttpMessageNotReadableException] JSON 파싱 실패 또는 타입 불일치", ex);
+    public ResponseEntity<ApiResponse<?>> handleJsonParseException(
+            HttpServletRequest request,
+            HttpMessageNotReadableException ex) {
+        TraceStatus status = (TraceStatus) request.getAttribute("traceStatus");
+        if (status != null) trace.exception(status, ex);
         return ResponseEntity.badRequest()
-                .body(ApiResponse.error(HttpStatus.BAD_REQUEST, "요청 형식이 올바르지 않거나 데이터 타입이 잘못되었습니다.", null));
+                .body(ApiResponse.error(HttpStatus.BAD_REQUEST,
+                        "요청 형식이 올바르지 않거나 데이터 타입이 잘못되었습니다.", null));
     }
 
     /**
      * 📌 @Valid - @RequestBody 입력값 검증 실패
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<?>> handleValidationException(MethodArgumentNotValidException ex) {
-        List<String> errors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                .toList();
-
-        log.warn("[ValidationException] 입력값 검증 실패: {}", errors);
+    public ResponseEntity<ApiResponse<?>> handleValidationException(
+            HttpServletRequest request,
+            MethodArgumentNotValidException ex) {
+        TraceStatus status = (TraceStatus) request.getAttribute("traceStatus");
+        if (status != null) trace.exception(status, ex);
+        List<String> errors = ex.getBindingResult().getFieldErrors()
+                .stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
         return ResponseEntity.badRequest()
-                .body(ApiResponse.error(HttpStatus.BAD_REQUEST,"입력값 검증 실패", errors));
+                .body(ApiResponse.error(HttpStatus.BAD_REQUEST,
+                        "입력값 검증 실패", errors));
     }
 
     /**
-     * 📌 @RequestParam, @PathVariable 등의 유효성 검증 실패
+     * 📌 @RequestParam, @PathVariable 등 검증 실패
      */
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ApiResponse<?>> handleConstraintViolation(ConstraintViolationException ex) {
+    public ResponseEntity<ApiResponse<?>> handleConstraintViolation(
+            HttpServletRequest request,
+            ConstraintViolationException ex) {
+        TraceStatus status = (TraceStatus) request.getAttribute("traceStatus");
+        if (status != null) trace.exception(status, ex);
         List<String> errors = ex.getConstraintViolations()
-                .stream()
-                .map(v -> v.getMessage())
-                .toList();
-
-        log.warn("[ConstraintViolationException] 제약 조건 위반: {}", errors);
-        return ResponseEntity.badRequest().body(
-                ApiResponse.error(HttpStatus.BAD_REQUEST, "제약 조건 위반", errors)
-        );
+                .stream().map(v -> v.getMessage()).toList();
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(HttpStatus.BAD_REQUEST,
+                        "제약 조건 위반", errors));
     }
 
     /**
-     * 📌 폼 객체 바인딩 실패 (ex: @ModelAttribute)
+     * 📌 @ModelAttribute 바인딩 실패
      */
     @ExceptionHandler(BindException.class)
-    public ResponseEntity<ApiResponse<?>> handleBindException(BindException ex) {
-        List<String> errors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                .toList();
-
-        log.warn("[BindException] 바인딩 실패: {}", errors);
-        return ResponseEntity.badRequest().body(
-                ApiResponse.error(HttpStatus.BAD_REQUEST, "바인딩 실패", errors)
-        );
+    public ResponseEntity<ApiResponse<?>> handleBindException(
+            HttpServletRequest request,
+            BindException ex) {
+        TraceStatus status = (TraceStatus) request.getAttribute("traceStatus");
+        if (status != null) trace.exception(status, ex);
+        List<String> errors = ex.getBindingResult().getFieldErrors()
+                .stream().map(DefaultMessageSourceResolvable::getDefaultMessage).toList();
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(HttpStatus.BAD_REQUEST,
+                        "바인딩 실패", errors));
     }
 
     /**
-     * 📌 인증 실패 관련 예외 처리 (ex: 토큰 없음, 만료, 위조 등)
+     * 📌 인증 실패 관련 예외 처리
      */
     @ExceptionHandler(AuthException.class)
-    public ResponseEntity<ApiResponse<?>> handleAuthException(AuthException ex) {
-        log.warn("[AuthException] {}", ex.getMessage());
+    public ResponseEntity<ApiResponse<?>> handleAuthException(
+            HttpServletRequest request,
+            AuthException ex) {
+        TraceStatus status = (TraceStatus) request.getAttribute("traceStatus");
+        if (status != null) trace.exception(status, ex);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error(HttpStatus.UNAUTHORIZED, ex.getMessage(), null));
+                .body(ApiResponse.error(HttpStatus.UNAUTHORIZED,
+                        ex.getMessage(), null));
     }
+
     /**
-     * 📌 비즈니스 로직 오류 처리 (ex: 로그인 실패, 권한 없음 등)
+     * 📌 비즈니스 로직 오류 처리
      */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<?>> handleBusinessException(BusinessException ex) {
-        log.warn("[BusinessException] {}", ex.getMessage());
+    public ResponseEntity<ApiResponse<?>> handleBusinessException(
+            HttpServletRequest request,
+            BusinessException ex) {
+        TraceStatus status = (TraceStatus) request.getAttribute("traceStatus");
+        if (status != null) trace.exception(status, ex);
+
         return ResponseEntity.status(ex.getStatus())
-                .body(ApiResponse.error(ex.getStatus(), ex.getMessage(), null));
+                .body(ApiResponse.error(
+                        ex.getStatus(),       // HTTP 상태
+                        ex.getMessage(),      // 예외 메시지
+                        null                  // 데이터 없음
+                ));
     }
 
     /**
      * 📌 예상치 못한 서버 오류 처리
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<?>> handleGlobalException(Exception ex) {
+    public ResponseEntity<ApiResponse<?>> handleGlobalException(
+            HttpServletRequest request,
+            Exception ex) {
+        TraceStatus status = (TraceStatus) request.getAttribute("traceStatus");
+        if (status != null) trace.exception(status, ex);
         log.error("[ServerError] 처리되지 않은 예외 발생", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.", null)
-        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR,
+                        "서버 내부 오류가 발생했습니다.", null));
     }
 }

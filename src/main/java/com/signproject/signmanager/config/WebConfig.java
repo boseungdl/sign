@@ -3,6 +3,7 @@ package com.signproject.signmanager.config;
 import com.signproject.signmanager.common.resolver.LoginUserArgumentResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.*;
 
@@ -14,6 +15,16 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final LoggingInterceptor loggingInterceptor;
     private final LoginUserArgumentResolver loginUserArgumentResolver;
+
+    /**
+     * 모든 API 요청에 대해 로깅 인터셉터 적용
+     */
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(loggingInterceptor)
+                .order(Ordered.HIGHEST_PRECEDENCE) // 무슨 코드지
+                .addPathPatterns("/**");
+    }
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
@@ -31,12 +42,4 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowCredentials(true);
     }
 
-    /**
-     * 모든 API 요청에 대해 로깅 인터셉터 적용
-     */
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(loggingInterceptor)
-                .addPathPatterns("/**");
-    }
 }
