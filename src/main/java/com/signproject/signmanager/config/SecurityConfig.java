@@ -28,7 +28,11 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable())
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // ✅ 필터 인스턴스 주입
