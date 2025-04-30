@@ -40,10 +40,11 @@ public class LoginUserArgumentResolver implements HandlerMethodArgumentResolver 
                                   ModelAndViewContainer mavContainer,
                                   NativeWebRequest webRequest,
                                   org.springframework.web.bind.support.WebDataBinderFactory binderFactory) {
-        HttpServletRequest request = ((ServletWebRequest) webRequest).getRequest();
-        String token = tokenProvider.resolveToken(request);
 
-        Long userId = tokenProvider.getUserIdFromToken(token);
+        HttpServletRequest request = ((ServletWebRequest) webRequest).getRequest();
+
+        // ✅ 필터에서 전달된 userId 사용
+        Long userId = (Long) request.getAttribute("userId");
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("유저 정보를 찾을 수 없습니다."));
